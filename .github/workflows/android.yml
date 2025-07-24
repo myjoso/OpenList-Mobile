@@ -3,7 +3,8 @@ name: Build APK
 on:
   push:
     tags:
-      - 'v*'  # 只有推送以 v 开头的 tag 时触发构建
+      - 'v*'     # 自动触发：推送以 v 开头的 tag
+  workflow_dispatch: # 手动运行支持
 
 jobs:
   build:
@@ -25,14 +26,25 @@ jobs:
         with:
           flutter-version: '3.22.0'
 
+      - name: Cache Flutter packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.pub-cache
+            build
+          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.yaml') }}
+
       - name: Install dependencies
         run: flutter pub get
 
       - name: Build APK
         run: flutter build apk --release
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v3
+      - name: Upload to GitHub Release
+        uses: ncipollo/release-action@v1
         with:
-          name: OpenList-Mobile-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+          tag: ${{ github.ref_name }}
+          artifacts: build/app/outputs/flutter-apk/app-release.apk
+          allowUpdates: true
+          name: "OpenList-Mobile v${{ github.ref_name }}"
+          body: "自动构建发布：Release APK 文件"
